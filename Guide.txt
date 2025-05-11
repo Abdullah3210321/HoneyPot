@@ -1,0 +1,19 @@
+sudo su - cowrie
+then password
+cd cowrie
+./bin/cowrie start
+-- for stop 
+./bin/cowire stop
+-- for status 
+./bin/cowrie status
+cd cowrie
+<----------------->
+for creating virtual envirnemnt
+python -m venu ~/cowrie-tools
+source ~/cowrie-tools/bin/activate
+
+<----------------->
+copy paste file (cowrie_log_graphs.py, ./run_graphs.sh,requirments.txt)
+pip install -r requirments.txt
+chmod +x run_graphs.sh
+./run_graphs.sh

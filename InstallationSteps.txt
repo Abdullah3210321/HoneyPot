@@ -1,0 +1,27 @@
+Step 1: Install system dependencies
+sudo apt-get install git python3-pip python3-venv libssl-dev libffi-dev build-essential libpython3-dev python3-minimal authbind
+
+
+Step 2: Create a user account?
+sudo adduser --disabled-password cowrie
+
+Step 3: Checkout the code
+git clone http://github.com/cowrie/cowrie
+
+Step 4: Setup Virtual Environment
+pwd
+python3 -m venv cowrie-env
+source cowrie-env/bin/activate
+python -m pip install --upgrade pip
+python -m pip install --upgrade -r requirements.txt
+
+Step 5: Install configuration file
+[telnet]
+enabled = true
+
+
+Step 6: Starting Cowrie
+bin/cowrie start
+
+Step 7: Listening on port 22 
+sudo iptables -t nat -A PREROUTING -p tcp --dport 22 -j REDIRECT --to-port 2222
