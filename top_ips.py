@@ -3,11 +3,12 @@ import json
 import logging
 from collections import defaultdict
 import plotext as plt
+import glob
 
 # Setup logging
 logging.basicConfig(
-    filename='cowrie_log_debug.log',  # Log file path
-    level=logging.DEBUG,               # Capture all levels of logs (DEBUG and above)
+    filename='cowrie_log_debug.log',
+    level=logging.DEBUG,
     format='%(asctime)s %(levelname)s: %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
@@ -19,29 +20,29 @@ logging.info(f"Starting to parse JSON log files in directory: {log_dir}")
 
 try:
     files_found = False
-    # Loop through all JSON log files (cowrie.json.*)
-    for file in os.listdir(log_dir):
-        if file.startswith("cowrie.json."):
-            files_found = True
-            filepath = os.path.join(log_dir, file)
-            logging.info(f"Processing file: {filepath}")
 
-            with open(filepath, "r") as f:
-                line_num = 0
-                for line in f:
-                    line_num += 1
-                    try:
-                        log = json.loads(line.strip())
-                        ip = log.get("src_ip")
-                        if ip:
-                            ip_event_counts[ip] += 1
-                        else:
-                            logging.debug(f"No 'src_ip' found at {filepath} line {line_num}")
-                    except json.JSONDecodeError as e:
-                        logging.warning(f"JSON decode error at {filepath} line {line_num}: {e}")
+    # Use glob to match both 'cowrie.json' and 'cowrie.json.*'
+    log_files = glob.glob(os.path.join(log_dir, "cowrie.json*"))
 
-    if not files_found:
-        logging.error(f"No files starting with 'cowrie.json.' found in {log_dir}")
+    if not log_files:
+        logging.error(f"No log files found in {log_dir}")
+        print("No log files found.")
+        exit()
+
+    for filepath in sorted(log_files):
+        files_found = True
+        logging.info(f"Processing file: {filepath}")
+        with open(filepath, "r") as f:
+            for line_num, line in enumerate(f, start=1):
+                try:
+                    log = json.loads(line.strip())
+                    ip = log.get("src_ip")
+                    if ip:
+                        ip_event_counts[ip] += 1
+                    else:
+                        logging.debug(f"No 'src_ip' at {filepath} line {line_num}")
+                except json.JSONDecodeError as e:
+                    logging.warning(f"JSON decode error at {filepath} line {line_num}: {e}")
 
 except Exception as e:
     logging.error(f"Exception occurred during log parsing: {e}")
@@ -61,17 +62,20 @@ if not ips:
 logging.info(f"Top {top_n} IPs: {ips}")
 logging.info(f"Counts: {counts}")
 
-# Print summary info
+# Print summary
 total_events = sum(ip_event_counts.values())
 unique_ips = len(ip_event_counts)
 print(f"Total unique IPs: {unique_ips}")
 print(f"Total events: {total_events}")
-print(f"Showing top {top_n} IPs + Others grouped")
+print(f"Showing top {top_n} IPs")
 
-# Plot bar chart
+# Plot chart
 plt.clear_figure()
 plt.title("Top Attacker IPs by Event Count")
 plt.bar(ips, counts)
 plt.xlabel("IP Address")
 plt.ylabel("Event Count")
+plt.canvas_color("default")
+plt.axes_color("default")
+plt.ticks_color("default")
 plt.show()
