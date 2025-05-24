@@ -4,6 +4,7 @@ import logging
 from collections import defaultdict
 from datetime import datetime
 import plotext as plt
+import glob
 
 # Setup logging
 logging.basicConfig(
@@ -19,34 +20,33 @@ date_event_counts = defaultdict(int)
 logging.info(f"Starting to parse JSON log files in directory: {log_dir}")
 
 try:
-    files_found = False
-    for file in os.listdir(log_dir):
-        if file.startswith("cowrie.json."):
-            files_found = True
-            filepath = os.path.join(log_dir, file)
-            logging.info(f"Processing file: {filepath}")
+    # Use glob to match both 'cowrie.json' and 'cowrie.json.*'
+    log_files = glob.glob(os.path.join(log_dir, "cowrie.json*"))
 
-            with open(filepath, "r") as f:
-                for line_num, line in enumerate(f, 1):
-                    try:
-                        log_entry = json.loads(line.strip())
-                        timestamp = log_entry.get("timestamp")
-
-                        if timestamp:
-                            try:
-                                date_str = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ").date().isoformat()
-                                date_event_counts[date_str] += 1
-                            except ValueError:
-                                logging.debug(f"Invalid timestamp format at {filepath} line {line_num}: {timestamp}")
-                        else:
-                            logging.debug(f"No 'timestamp' found at {filepath} line {line_num}")
-                    except json.JSONDecodeError as e:
-                        logging.warning(f"JSON decode error at {filepath} line {line_num}: {e}")
-    
-    if not files_found:
-        logging.error("No log files starting with 'cowrie.json.' found.")
+    if not log_files:
+        logging.error("No log files found.")
         print("No Cowrie log files found.")
         exit()
+
+    for filepath in sorted(log_files):
+        logging.info(f"Processing file: {filepath}")
+
+        with open(filepath, "r") as f:
+            for line_num, line in enumerate(f, 1):
+                try:
+                    log_entry = json.loads(line.strip())
+                    timestamp = log_entry.get("timestamp")
+
+                    if timestamp:
+                        try:
+                            date_str = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ").date().isoformat()
+                            date_event_counts[date_str] += 1
+                        except ValueError:
+                            logging.debug(f"Invalid timestamp format at {filepath} line {line_num}: {timestamp}")
+                    else:
+                        logging.debug(f"No 'timestamp' found at {filepath} line {line_num}")
+                except json.JSONDecodeError as e:
+                    logging.warning(f"JSON decode error at {filepath} line {line_num}: {e}")
 
 except Exception as e:
     logging.error(f"Exception occurred during log parsing: {e}")
@@ -71,12 +71,12 @@ print("Showing date-wise event distribution")
 
 # Plotting using index-based x-axis to avoid date parsing issues
 x_indices = list(range(len(dates)))
-labels_to_show = dates  # full date labels
+labels_to_show = dates
 
 plt.clear_figure()
 plt.title("Date-wise Event Counts")
 plt.bar(x_indices, counts)
 plt.xlabel("Date Index")
 plt.ylabel("Event Count")
-plt.xticks(x_indices[::max(1, len(x_indices)//10)], labels_to_show[::max(1, len(labels_to_show)//10)])  # show some date labels
+plt.xticks(x_indices[::max(1, len(x_indices)//10)], labels_to_show[::max(1, len(labels_to_show)//10)])  # limit clutter
 plt.show()
